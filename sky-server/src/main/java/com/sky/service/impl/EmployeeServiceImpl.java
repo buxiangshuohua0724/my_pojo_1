@@ -1,16 +1,20 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
+import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
+import com.sky.result.PageResult;
 import com.sky.service.EmployeeService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -78,15 +83,47 @@ public class EmployeeServiceImpl implements EmployeeService {
         //设置默认密码为123456，需要进行md5加密处理
         employee.setPassword(DigestUtils.md5DigestAsHex((PasswordConstant.DEFAULT_PASSWORD).getBytes()));
 
-        //设置创建时间和更新时间
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime(LocalDateTime.now());
-
-        //设置创建人和更新人
-        Long currentId = BaseContext.getCurrentId();
-        employee.setCreateUser(currentId);
-        employee.setUpdateUser(currentId);
 
         employeeMapper.insert(employee);
     }
+        /**
+         * 分页查询员工
+         * @param employeePageQueryDTO
+         */
+        public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
+            PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
+            Page<Employee> page = employeeMapper.pageQuery(employeePageQueryDTO);
+            long total = page.getTotal();
+            List<Employee> employees = page.getResult();
+            return new PageResult(total, employees);
+        }
+
+
+        /**
+         * 启用或禁用员工账号
+         * @param status
+         * @return
+         */
+        public void updateStatus(Integer status,long id) {
+            employeeMapper.updateStatus(status, id);
+        }
+        /**
+         * 编辑员工
+         * @param employeeDTO
+         */
+        public void update(EmployeeDTO employeeDTO) {
+            Employee employee = new Employee();
+            BeanUtils.copyProperties(employeeDTO, employee);
+            employeeMapper.update(employee);
+        }
+        /**
+         * 根据id查询员工
+         * @param id
+         * @return
+         */
+        public Employee getById(Long id) {
+            Employee employee = employeeMapper.selectById(id);
+           employee.setPassword("*****");
+            return employee;
+        }
 }
